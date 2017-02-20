@@ -1,0 +1,14 @@
+<Relations>
+    <Relationship bala="ddd">
+        <id>1</id>
+        <Type>match</Type>
+        <Weight>1.0</Weight>
+        <Score>100.0</Score>
+    </Relationship>
+    <Relationship>
+        <id>2</id>
+        <Type>match</Type>
+        <Weight>1.0</Weight>
+        <Score>90.0</Score>
+    </Relationship>
+</Relations>

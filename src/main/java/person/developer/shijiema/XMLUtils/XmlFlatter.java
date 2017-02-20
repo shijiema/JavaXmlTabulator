@@ -1,3 +1,27 @@
+/*
+MIT License
+
+Copyright (c) 2017 Andrew Ma
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+ */
 package person.developer.shijiema.XMLUtils;
 
 import org.w3c.dom.Document;
@@ -8,6 +32,8 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.*;
 import java.io.CharArrayReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.Reader;
 import java.util.*;
 
@@ -23,25 +49,37 @@ public class XmlFlatter implements Iterable<List<String>>{
     List<List<StringKeyValuePair>> result = new ArrayList<List<StringKeyValuePair>>();
     Set<String> headerSet = new LinkedHashSet<String>();
     List<String> headers = new LinkedList<String>();
+    DocumentBuilder builder = null;
     Document xml = null;
     XPath xpath = null;
-
-    public XmlFlatter(String xmlStr) throws Exception {
+    private void initDocumentAndXpath() throws Exception{
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        XPathFactory xPathfactory = XPathFactory.newInstance();
-        xpath = xPathfactory.newXPath();
         //factory.setNamespaceAware(true);
         //factory.setValidating(true);
-        DocumentBuilder builder = factory.newDocumentBuilder();
-        Reader reader = new CharArrayReader(xmlStr.toCharArray());
-        this.xml = builder.parse(new InputSource(reader));
-
+        builder = factory.newDocumentBuilder();
+        XPathFactory xPathfactory = XPathFactory.newInstance();
+        xpath = xPathfactory.newXPath();
+    }
+    private void parse(Reader reader) throws Exception{
         List<StringKeyValuePair> firstRow = new ArrayList<StringKeyValuePair>();
+        this.xml = builder.parse(new InputSource(reader));
         //figure out stop level
         stopLevel = maxAncestorCnt(this.xml);
 
         buildResult("/", firstRow);
         convertDuplicatedColsToRows();
+    }
+    public XmlFlatter(File xmlFile) throws Exception {
+        initDocumentAndXpath();
+        Reader reader = new FileReader(xmlFile);
+
+        parse(reader);
+    }
+    public XmlFlatter(String xmlStr) throws Exception {
+        initDocumentAndXpath();
+        Reader reader = new CharArrayReader(xmlStr.toCharArray());
+
+        parse(reader);
     }
     /**
      * Recursively going through layers of XML, building up rows and columns as it goes.
