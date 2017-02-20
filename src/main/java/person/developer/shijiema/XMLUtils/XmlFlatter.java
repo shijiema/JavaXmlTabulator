@@ -4,14 +4,10 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.*;
 import java.io.CharArrayReader;
-import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
 
@@ -30,23 +26,15 @@ public class XmlFlatter implements Iterable<List<String>>{
     Document xml = null;
     XPath xpath = null;
 
-    public XmlFlatter(String xmlStr) throws XPathExpressionException {
+    public XmlFlatter(String xmlStr) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         XPathFactory xPathfactory = XPathFactory.newInstance();
         xpath = xPathfactory.newXPath();
         //factory.setNamespaceAware(true);
         //factory.setValidating(true);
-        try {
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            Reader reader = new CharArrayReader(xmlStr.toCharArray());
-            this.xml = builder.parse(new InputSource(reader));
-        } catch (SAXException e) {
-            e.printStackTrace();
-        } catch (ParserConfigurationException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Reader reader = new CharArrayReader(xmlStr.toCharArray());
+        this.xml = builder.parse(new InputSource(reader));
 
         List<StringKeyValuePair> firstRow = new ArrayList<StringKeyValuePair>();
         //figure out stop level
@@ -314,7 +302,7 @@ public class XmlFlatter implements Iterable<List<String>>{
         return sb.toString();
     }
 
-	public static void main(String[] args) throws XPathExpressionException {
+	public static void main(String[] args) throws Exception {
 		//System.out.println(Xml.isXml("<Relationship bala=\"ddd\">        <id>1</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>100.0</Score>    </Relationship>        <Relationship>        <id>2</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>90.0</Score>    </Relationship>"));
 		String xml2 = "<Relations><Relationship bala=\"ddd\">        <id>1</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>100.0</Score>    </Relationship>        <Relationship>        <id>2</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>90.0</Score>    </Relationship></Relations>";
 

@@ -36,7 +36,7 @@ public class XmlFlatterTest
     /**
      * Rigourous Test :-)
      */
-    public void testXmlFlatter() throws XPathExpressionException {
+    public void testXmlFlatter() throws Exception {
         String xml2 = "<Relations><Relationship bala=\"ddd\">        <id>1</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>100.0</Score>    </Relationship>        <Relationship>        <id>2</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>90.0</Score>    </Relationship></Relations>";
 
         XmlFlatter o = new XmlFlatter(xml2);

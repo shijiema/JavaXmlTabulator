@@ -35,8 +35,11 @@ public class StringKeyValuePair implements Comparable<StringKeyValuePair>{
 	 */
 	public static StringKeyValuePair newStringKeyValuePair(String keyEqValue) {
 		Objects.requireNonNull(keyEqValue);
-		String key = keyEqValue.substring(0,keyEqValue.indexOf("="));
-		String value = keyEqValue.substring(keyEqValue.indexOf("=")+1,keyEqValue.length());
+		int index = keyEqValue.indexOf("=");
+		String key = keyEqValue.substring(0,index==-1?keyEqValue.length():index);
+		String value = index==-1?"":keyEqValue.substring(index+1,keyEqValue.length());
+		if('"'==value.charAt(0))value=value.substring(1);
+		if('"'==value.charAt(value.length()-1))value = value.substring(0,value.length()-1);
 		return new StringKeyValuePair(key, value);
 	}
 
