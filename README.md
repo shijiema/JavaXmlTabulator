@@ -1,22 +1,22 @@
 # XmlFlatter
-Converting XML to tabular form of data in pure Java implementation. No third party library dependency.
+Converting XML to tabular form of data in pure Java implementation. No third party library required.
 
 For am Xml such as
 
-<Relations>
-	<Relationship bala="ddd">
-		<id>1</id>
-		<Type>match</Type>
-		<Weight>1.0</Weight>
-		<Score>100.0</Score>
-	</Relationship>
-	<Relationship>
-		<id>2</id>
-		<Type>match</Type>
-		<Weight>1.0</Weight>
-		<Score>90.0</Score>
-	</Relationship>
-</Relations>
+&lt;Relations&gt;
+	&lt;Relationship bala=&quot;ddd&quot;&gt;
+		&lt;id&gt;1&lt;/id&gt;
+		&lt;Type&gt;match&lt;/Type&gt;
+		&lt;Weight&gt;1.0&lt;/Weight&gt;
+		&lt;Score&gt;100.0&lt;/Score&gt;
+	&lt;/Relationship&gt;
+	&lt;Relationship&gt;
+		&lt;id&gt;2&lt;/id&gt;
+		&lt;Type&gt;match&lt;/Type&gt;
+		&lt;Weight&gt;1.0&lt;/Weight&gt;
+		&lt;Score&gt;90.0&lt;/Score&gt;
+	&lt;/Relationship&gt;
+&lt;/Relations&gt;
 
 It will convert it to a flatten version of data that if iterating, looks like this:
 
