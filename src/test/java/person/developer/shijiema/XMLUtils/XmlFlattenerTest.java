@@ -11,7 +11,7 @@ import java.util.Iterator;
 /**
  * Unit test for simple App.
  */
-public class XmlFlatterTest
+public class XmlFlattenerTest
     extends TestCase
 {
     /**
@@ -19,7 +19,7 @@ public class XmlFlatterTest
      *
      * @param testName name of the test case
      */
-    public XmlFlatterTest( String testName )
+    public XmlFlattenerTest(String testName )
     {
         super( testName );
     }
@@ -29,7 +29,7 @@ public class XmlFlatterTest
      */
     public static Test suite()
     {
-        return new TestSuite( XmlFlatterTest.class );
+        return new TestSuite( XmlFlattenerTest.class );
     }
 
     /**
@@ -94,5 +94,47 @@ public class XmlFlatterTest
 //            System.out.println(itor.next());
 //        }
 
+    }
+    public void testBreakfactMenu() throws Exception{
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("BreakfastMenu.xml").getFile());
+        XmlFlattener o = new XmlFlattener(file);
+//        Iterator itor = o.iterator();
+//        while(itor.hasNext()){
+//            System.out.println(itor.next());
+//        }
+        Assert.assertEquals(o.getHeaders().size(),4);
+        Assert.assertEquals(o.getHeaders().get(0),"breakfast_menu_food_name");
+        Assert.assertEquals(o.getHeaders().get(3),"breakfast_menu_food_calories");
+        Assert.assertNotNull(o.getBody());
+        Assert.assertEquals(o.getBody().size(),5);
+        Assert.assertEquals(o.getBody().get(0).get("breakfast_menu_food_name"),"Belgian Waffles");
+        Assert.assertEquals(o.getBody().get(1).get("breakfast_menu_food_name"),"Strawberry Belgian Waffles");
+        Assert.assertEquals(o.getBody().get(1).get("breakfast_menu_food_price"),"$7.95");
+        Assert.assertEquals(o.getBody().get(4).get("breakfast_menu_food_name"),"Homestyle Breakfast");
+        Assert.assertEquals(o.getBody().get(4).get("breakfast_menu_food_calories"),"950");
+    }
+    public void testEtest() throws Exception{
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("ETest.xml").getFile());
+        XmlFlattener o = new XmlFlattener(file);
+//        Iterator itor = o.iterator();
+//        while(itor.hasNext()){
+//            System.out.println(itor.next());
+//        }
+        Assert.assertEquals(o.getHeaders().size(),13);
+        Assert.assertEquals(o.getHeaders().get(0),"E1");
+        Assert.assertEquals(o.getHeaders().get(1),"E1_E3");
+        Assert.assertNotNull(o.getBody());
+        Assert.assertEquals(o.getBody().size(),5);
+        Assert.assertEquals(o.getBody().get(0).get("E1"),"TextE1");
+        Assert.assertEquals(o.getBody().get(0).get("E1_E3"),"TextE32");
+        Assert.assertEquals(o.getBody().get(0).get("E1_E2"),"TextE2");
+        Assert.assertEquals(o.getBody().get(0).get("E1_E2_p1"),"v1");
+        Assert.assertEquals(o.getBody().get(0).get("E1_E4_E6_E10"),"TextE10");
+        Assert.assertEquals(o.getBody().get(1).get("E1_E4_E6_E10"),"TextE10");
+        Assert.assertNull(o.getBody().get(2).get("E1_E4_E6_E10"));
+        Assert.assertEquals(o.getBody().get(4).get("E1_E2_p1"),"v3");
+        Assert.assertEquals(o.getBody().get(4).get("E1_E2_E15"),"TextE15_3");
     }
 }

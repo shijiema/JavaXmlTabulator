@@ -25,6 +25,7 @@ SOFTWARE.
 package person.developer.shijiema.XMLUtils;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -43,39 +44,37 @@ import java.util.*;
  * @author Andrew Ma
  * @version 1.0, 02/14/2017
  */
-public class XmlFlatter implements Iterable<List<String>>{
-    int stopLevel = -1;
+public class XmlFlattener implements Iterable<List<String>>{
     List<Map<String,String>> mapResult = new ArrayList<Map<String,String>>();
-    List<List<StringKeyValuePair>> result = new ArrayList<List<StringKeyValuePair>>();
+    List<List<KeyValueWithProperties>> result = new ArrayList<List<KeyValueWithProperties>>();
     Set<String> headerSet = new LinkedHashSet<String>();
     List<String> headers = new LinkedList<String>();
     DocumentBuilder builder = null;
     Document xml = null;
     XPath xpath = null;
+
     private void initDocumentAndXpath() throws Exception{
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         //factory.setNamespaceAware(true);
-        //factory.setValidating(true);
         builder = factory.newDocumentBuilder();
         XPathFactory xPathfactory = XPathFactory.newInstance();
         xpath = xPathfactory.newXPath();
     }
     private void parse(Reader reader) throws Exception{
-        List<StringKeyValuePair> firstRow = new ArrayList<StringKeyValuePair>();
+        List<KeyValueWithProperties> firstRow = new ArrayList<KeyValueWithProperties>();
         this.xml = builder.parse(new InputSource(reader));
         //figure out stop level
-        stopLevel = maxAncestorCnt(this.xml);
-
-        buildResult("/", firstRow);
+        buildResult(this.xml,"/", firstRow);
+        headerSet.clear();
         convertDuplicatedColsToRows();
     }
-    public XmlFlatter(File xmlFile) throws Exception {
+    public XmlFlattener(File xmlFile) throws Exception {
         initDocumentAndXpath();
         Reader reader = new FileReader(xmlFile);
 
         parse(reader);
     }
-    public XmlFlatter(String xmlStr) throws Exception {
+    public XmlFlattener(String xmlStr) throws Exception {
         initDocumentAndXpath();
         Reader reader = new CharArrayReader(xmlStr.toCharArray());
 
@@ -86,101 +85,125 @@ public class XmlFlatter implements Iterable<List<String>>{
      * @param path xPath of current selections
      * @param row	a row to build
      */
-    private void buildResult(String path, List<StringKeyValuePair> row) throws XPathExpressionException {
-        //no more child, parent is leaf
-        if(xml==null){
+    private void buildResult(Node node, String path, List<KeyValueWithProperties> row) throws XPathExpressionException {
+        //no xml is to process
+        if(node==null){
             return;
         }
+//TODO: use Node to replace KeyValueWithProperties
+        //process children in interests.
+        XPathExpression expr = null;
+        String header = null;
+        if("/".equals(path)&&result.size()==0){result.add(row);}
 
-        //get all children.
-        //leaf level Elements
-        XPathExpression expr = xpath.compile(path+"*[count(child::*) < 1]");
-        NodeList leafChildren = (NodeList) expr.evaluate(xml, XPathConstants.NODESET);
-        //String[] leafChildren = xml..copyOf(path+"*[count(child::*) < 1]");//leaf element children
-        //Elements having child elements
-        expr = xpath.compile(path+"*[count(child::*) >= 1]");
-        NodeList childrenAsParent = (NodeList) expr.evaluate(xml, XPathConstants.NODESET);
-        //String[] childrenAsParent = xml.copyOf(path+"*[count(child::*) >= 1]");//element with element children
-        //all attribute nodes
-        expr = xpath.compile(path+"attribute::*");
-        NodeList properties = (NodeList) expr.evaluate(xml, XPathConstants.NODESET);
-        //String[] properties = xml.copyOf(path+"attribute::*");//attributes
-
-        //attributes belongs to current row
-        if(properties!=null && properties.getLength()>0){
-
-            for(int i=0;i<properties.getLength();i++){
-                StringKeyValuePair kvp = StringKeyValuePair.newStringKeyValuePair(path+"@"+properties.item(i).getNodeName()+"="+properties.item(i).getNodeValue());
-                String header = normalizeAKey(kvp.getKey());
-                row.add(StringKeyValuePair.newStringKeyValuePair(header,kvp.getValue()));
+        //current node and its properties
+        //text
+        expr = xpath.compile("child::text()");
+        NodeList textInCurrentNode = (NodeList) expr.evaluate(node, XPathConstants.NODESET);
+        KeyValueWithProperties curNode = KeyValueWithProperties.newStringKeyValuePair(normalizeAKey(path), null);
+        if(textInCurrentNode!=null &&textInCurrentNode.getLength()>0){
+            StringBuilder sb = new StringBuilder();
+            for(int i=0;i<textInCurrentNode.getLength();i++){
+                sb.append(textInCurrentNode.item(i).getNodeValue().trim()).append(" ");
+            }
+            if(sb.length()>0) {
+                curNode.setValue(sb.toString().trim());
             }
         }
-        //leaf children belongs to current row. this method append duplicate element as columns
-        //mathod 1, spread same keys as columns
-//		if(leafChildren!=null && leafChildren.length>0){
-//			Map<String,Integer> stats = new HashMap<String,Integer>();//xml contains duplicate elements as siblings
-//			for(String lc:leafChildren){
-//				Xml t = new Xml(lc);
-//				String localName = t.getQName().getLocalNameString();
-//				if(!stats.containsKey(localName)){
-//					stats.put(localName, 0);
-//				}else{
-//					int seq = stats.get(localName);
-//					stats.put(localName,seq+1);
-//					localName = localName+"_"+seq;
-//				}
-//				String header = path+localName;
-//				header = normalizeAKey(header);
-//				row.add(StringKeyValuePair.newStringKeyValuePair(header,t.valueOf()));
-//			}
-//		}
-        //method two, leave them as same column name, later convert to rows.
-        //this is more work, but more reasonable
+        textInCurrentNode = null;
+
+        //cur node its attribute nodes. hide them within node for node centric operations, expend them out later
+        expr = xpath.compile("attribute::*");
+        NodeList properties = (NodeList) expr.evaluate(node, XPathConstants.NODESET);
+        if(properties!=null && properties.getLength()>0){
+            for(int i=0;i<properties.getLength();i++){
+                curNode.addProperty(properties.item(i).getNodeName(),properties.item(i).getNodeValue());
+            }
+        }
+        //adding it as a column if it has some values
+        if((curNode.getValue()!=null && !"".equals(curNode.getValue())) || curNode.getProperties()!=null){
+            row.add(curNode);
+        }
+        properties = null;
+        //making a common parent candidate
+        List<KeyValueWithProperties> commonParents = new ArrayList<KeyValueWithProperties>();
+        commonParents.addAll(row);
+        //leaf children of current node. including into same row. repeat element becomes new row
+        expr = xpath.compile("*[count(child::*) < 1]");
+        List<KeyValueWithProperties> repeatElements =new LinkedList<KeyValueWithProperties>();
+        NodeList leafChildren = (NodeList) expr.evaluate(node, XPathConstants.NODESET);
         if(leafChildren!=null && leafChildren.getLength()>0){
 
             for(int i=0;i<leafChildren.getLength();i++){
                 Node t = leafChildren.item(i);
                 String nodeName = t.getNodeName();
-                //Element's node value is null, trying to get its text node's value
+                //for leaf Element, its node value is null, trying to get its text node's value
                 String nodeValue= t.getFirstChild()==null?null:t.getFirstChild().getNodeValue();
-                String header = path+nodeName;
+                header = path+nodeName;
                 header = normalizeAKey(header);
-                row.add(StringKeyValuePair.newStringKeyValuePair(header,nodeValue));
+                KeyValueWithProperties tmpNode = KeyValueWithProperties.newStringKeyValuePair(header,nodeValue);
+                //process its properties
+                NamedNodeMap nodeProps = t.getAttributes();
+                if(nodeProps!=null && nodeProps.getLength()>0){
+                    for(int j=0;j<nodeProps.getLength();j++){
+                        tmpNode.addProperty(nodeProps.item(j).getNodeName(),nodeProps.item(j).getNodeValue());
+                    }
+                }
+                if((tmpNode.getValue()!=null && !"".equals(tmpNode.getValue().trim())) || tmpNode.getProperties()!=null){
+                    expr = xpath.compile(nodeName+"[count(following-sibling::"+nodeName+") > 0]");
+                    NodeList siblingOfSameElement = (NodeList) expr.evaluate(node, XPathConstants.NODESET);
+                    if(siblingOfSameElement==null || siblingOfSameElement.getLength()==0){
+                        row.add(tmpNode);
+                    }else{
+                        repeatElements.add(tmpNode);
+                    }
+                }
+            }
+            //possibly adding more content to common parent: all unique leaf nodes under cur node are treated as part of cur node,
+            // they stay on same row
+            commonParents.clear();
+            commonParents.addAll(row);
+            //adding rest of leaf child into row
+            //repeat leaf node, adding to row directly and leave for unpivot function to straighten them
+            for(KeyValueWithProperties n:repeatElements){
+                row.add(n);
             }
         }
+        leafChildren = null;
         //for element having child elements
+        expr = xpath.compile("*[count(child::*) >= 1]");
+        NodeList childrenAsParent = (NodeList) expr.evaluate(node, XPathConstants.NODESET);
         if(childrenAsParent!=null&&childrenAsParent.getLength()>0){
-            //sort them the first
-            Node[] nodes = new Node[childrenAsParent.getLength()];
+            //spawn a new row for repeating children
             for(int i=0;i<childrenAsParent.getLength();i++){
-                nodes[i] = childrenAsParent.item(i);
-            }
-            Arrays.sort(nodes, new Comparator<Node>() {
-                @Override
-                public int compare(Node o1, Node o2) {
-                    return o1.getNodeName().compareToIgnoreCase(o2.getNodeName());
+                Node cn = childrenAsParent.item(i);
+                String curElement = cn.getNodeName();
+                String curPath = path+curElement+"/";
+                String curPathNorm = normalizeAKey(curPath);
+                expr = xpath.compile(curElement+"[count(following-sibling::"+curElement+") > 0]");
+                NodeList siblingWithSameElement = (NodeList) expr.evaluate(node, XPathConstants.NODESET);
+                //it element is repeating
+
+                if(siblingWithSameElement!=null && siblingWithSameElement.getLength()>0) {
+                    expr = xpath.compile(curElement + "[1]");
+                    NodeList firstElement = (NodeList) expr.evaluate(node, XPathConstants.NODESET);
+                    Node firstNode = firstElement.item(0);
+                    //if it is first one
+                    if (cn == firstNode) {
+                        buildResult(cn, curPath, row);
+                    } else {
+                        //second one and on, creating new rows
+                        List<KeyValueWithProperties> aNewRow = new ArrayList<KeyValueWithProperties>();
+                        aNewRow.addAll(commonParents);
+                        result.add(aNewRow);
+                        buildResult(cn, curPath, aNewRow);
+                    }
+                }else{
+                    buildResult(cn, curPath, row);
                 }
-            });
-            int index = 1;
-            String prev = "";
-            //spawn a new row for each children
-            for(int i=0;i<nodes.length;i++){
-                Node t = nodes[i];
-                List<StringKeyValuePair> addRow = new ArrayList<StringKeyValuePair>();
-                addRow.addAll(row);
-                String curElement = t.getNodeName();
-                if(!curElement.equalsIgnoreCase(prev)){
-                    index=1;//reset index for new element
-                }
-                //go to next layer
-                buildResult(path+curElement+"["+index+"]/",addRow);
-                index++;
-                prev = curElement;
             }
         }
-        if(ancestorCnt(path)==stopLevel){
-            result.add(row);
-        }
+            childrenAsParent = null;
     }
     /**
      * return parsed headers
@@ -206,12 +229,21 @@ public class XmlFlatter implements Iterable<List<String>>{
      * @param l
      * @return
      */
-    private Map<String,String> convertListOfKVPToMap(List<StringKeyValuePair> l){
+    private Map<String,String> convertListOfKVPToMap(List<KeyValueWithProperties> l){
         Objects.requireNonNull(l);
-        Map<String,String> mp = new HashMap<String,String>();
-        for(StringKeyValuePair kv:l){
-            mp.put(kv.getKey(), kv.getValue());
-            headerSet.add(kv.getKey());
+        Map<String,String> mp = new LinkedHashMap<String,String>();
+        for(KeyValueWithProperties kv:l){
+            if(kv.getValue()!=null) {
+                mp.put(kv.getKey(), kv.getValue());
+                headerSet.add(kv.getKey());
+            }
+            if(kv.getProperties()!=null){
+                for(Map.Entry<String, String> e:kv.getProperties().entrySet()){
+                    String propKey = kv.getKey()+"_"+e.getKey();
+                    mp.put(propKey, e.getValue());
+                    headerSet.add(propKey);
+                }
+            }
         }
         return mp;
     }
@@ -219,24 +251,24 @@ public class XmlFlatter implements Iterable<List<String>>{
      * For duplicate columns within a row, convert them to be in different rows.
      */
     private void convertDuplicatedColsToRows(){
-        List<List<StringKeyValuePair>> newResult = new ArrayList<List<StringKeyValuePair>>();
+        List<List<KeyValueWithProperties>> newResult = new ArrayList<List<KeyValueWithProperties>>();
 
-        Iterator<List<StringKeyValuePair>> rows = result.iterator();
+        Iterator<List<KeyValueWithProperties>> rows = result.iterator();
         //revisit each row
         while(rows.hasNext()){
-            Map<String, Set<StringKeyValuePair>> stats = new LinkedHashMap<String,Set<StringKeyValuePair>>();
-            List<StringKeyValuePair> l = rows.next();
-            for(StringKeyValuePair kv : l){
+            Map<String, Set<KeyValueWithProperties>> stats = new LinkedHashMap<String,Set<KeyValueWithProperties>>();
+            List<KeyValueWithProperties> l = rows.next();
+            for(KeyValueWithProperties kv : l){
                 if(stats.containsKey(kv.getKey())){
                     stats.get(kv.getKey()).add(kv);
                 }else{
-                    Set<StringKeyValuePair> s = new TreeSet<StringKeyValuePair>();
+                    Set<KeyValueWithProperties> s = new TreeSet<KeyValueWithProperties>();
                     s.add(kv);
                     stats.put(kv.getKey(), s);
                 }
             }
-            List<List<StringKeyValuePair>> tmpRows = new ArrayList<List<StringKeyValuePair>>();
-            for(Map.Entry<String, Set<StringKeyValuePair>> e:stats.entrySet()){
+            List<List<KeyValueWithProperties>> tmpRows = new ArrayList<List<KeyValueWithProperties>>();
+            for(Map.Entry<String, Set<KeyValueWithProperties>> e:stats.entrySet()){
                 tmpRows = makeProduction(tmpRows, e.getValue());
             }
             newResult.addAll(tmpRows);
@@ -258,21 +290,21 @@ public class XmlFlatter implements Iterable<List<String>>{
      * @param setToAdd
      * @return
      */
-    private List<List<StringKeyValuePair>> makeProduction(List<List<StringKeyValuePair>> list,Set<StringKeyValuePair> setToAdd){
-        List<List<StringKeyValuePair>> production = new ArrayList<List<StringKeyValuePair>>();
+    private List<List<KeyValueWithProperties>> makeProduction(List<List<KeyValueWithProperties>> list, Set<KeyValueWithProperties> setToAdd){
+        List<List<KeyValueWithProperties>> production = new ArrayList<List<KeyValueWithProperties>>();
         if(list==null){
-            list = new ArrayList<List<StringKeyValuePair>>();
+            list = new ArrayList<List<KeyValueWithProperties>>();
         }
 
-        for(StringKeyValuePair kv:setToAdd){
+        for(KeyValueWithProperties kv:setToAdd){
             if(list.size()==0){
-                List<StringKeyValuePair> newList = new ArrayList<>();
+                List<KeyValueWithProperties> newList = new ArrayList<>();
                 newList.add(kv);
                 production.add(newList);
             }else{
-                for(List<StringKeyValuePair> ol:list){
+                for(List<KeyValueWithProperties> ol:list){
                     //for each original list, create new list to add new value
-                    List<StringKeyValuePair> newList = new ArrayList<>(ol);
+                    List<KeyValueWithProperties> newList = new ArrayList<>(ol);
                     newList.add(kv);
                     production.add(newList);
                 }
@@ -328,23 +360,24 @@ public class XmlFlatter implements Iterable<List<String>>{
      * @return
      */
     private String normalizeAKey(String key){
-        //[d+] as separator
-        String tmp[] = key.split("\\Q[\\E[\\d]+\\Q]\\E");
-        StringBuilder sb = new StringBuilder();
-        for(String s: tmp){
-            s = s.replaceAll("/@", "");
-            s = s.replaceAll("/", "");
-            sb.append(s).append("_");
+        // "/" as separator
+        if('/'==key.charAt(0)){
+            key = key.substring(1);
         }
-        sb.deleteCharAt(sb.length()-1);
-        return sb.toString();
+        if(key.length()>0 && '/'==key.charAt(key.length()-1)){
+            key = key.substring(0,key.length()-1);
+        }
+        key = key.replaceAll("/@","_");
+        key = key.replaceAll("/","_");
+
+        return key;
     }
 
 	public static void main(String[] args) throws Exception {
 		//System.out.println(Xml.isXml("<Relationship bala=\"ddd\">        <id>1</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>100.0</Score>    </Relationship>        <Relationship>        <id>2</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>90.0</Score>    </Relationship>"));
 		String xml2 = "<Relations><Relationship bala=\"ddd\">        <id>1</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>100.0</Score>    </Relationship>        <Relationship>        <id>2</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>90.0</Score>    </Relationship></Relations>";
-
-		XmlFlatter o = new XmlFlatter(xml2);
+        //String xml2 = "<E1>TextE1<E2 p1=\"v1\">TextE2</E2><E2 p1=\"v3\">E2</E2><E2 p1=\"v4\">E22<E15>TextE15</E15></E2><E3>TextE3</E3> <E4><E5>TextE5</E5><E6>TextE6<E9>textE9</E9><E10>TextE10</E10></E6></E4><E7 p2=\"v2\">TextE7<E8>TextE8</E8></E7><E11><E12><E13><E14>TextE14</E14></E13></E12></E11></E1>";
+		XmlFlattener o = new XmlFlattener(xml2);
 		System.out.println(o.getBody());
 		Iterator<List<String>> it = o.iterator();
 		while(it.hasNext()){
@@ -361,10 +394,10 @@ public class XmlFlatter implements Iterable<List<String>>{
 
     private class ListIterator<Item> implements Iterator<Item> {
         private int index;
-        XmlFlatter flatter= null;
-        public ListIterator(XmlFlatter xmlFlatter) {
+        XmlFlattener flatter= null;
+        public ListIterator(XmlFlattener xmlFlattener) {
             index = 0;
-            flatter = xmlFlatter;
+            flatter = xmlFlattener;
         }
 
         public boolean hasNext()  {
