@@ -1,5 +1,7 @@
 package person.developer.shijiema.XMLUtils;
 
+import org.w3c.dom.Node;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -9,11 +11,14 @@ public class KeyValueWithProperties implements Comparable<KeyValueWithProperties
 	private String key;
 	private String value;
 	private Map<String,String> properties = null;
-	
+	Node node;
 	private KeyValueWithProperties(String key, String value) {
 		this.key = key;
 		this.value = value;
 	}
+    public KeyValueWithProperties(Node node) {
+        this.node = node;
+    }
 	public void setValue(String v){
 		this.value = "".equals(v)?null:v;
 	}
@@ -44,17 +49,19 @@ public class KeyValueWithProperties implements Comparable<KeyValueWithProperties
 		addProperty(key,value);
 	}
 	public String toString(){
-		return key+"="+value;
+		StringBuffer sb = new StringBuffer();
+		sb.append(key+"="+value);
+		if(this.properties!=null) {
+			for (Map.Entry<String, String> p : this.properties.entrySet()) {
+				sb.append(p.getKey() + "=" + p.getValue()).append(" ");
+			}
+		}
+		return sb.toString();
 	}
 	public int hashCode(){
 		return getKey().hashCode();
 	}
-	public boolean equals(Object o){
-		if(o!=null && o instanceof KeyValueWithProperties && ((KeyValueWithProperties) o).getKey().equals(getKey())){
-			return true;
-		}
-		return false;
-	}
+
 	public static KeyValueWithProperties newStringKeyValuePair(String key, String value) {
 		return new KeyValueWithProperties(key, value);
 	}
