@@ -4,12 +4,15 @@ Converting XML to tabular form of data in pure Java implementation. No third par
 For am Xml such as
 ```
 <Relations>
-	<Relationship p1="v1">some text<id>1</id>
-		<Type>OneToMany</Type>other text<Weight>1.0</Weight>
+	<Relationship p1="v1">some text
+	    <id>1</id>
+		<Type>OneToMany</Type>other text
+		<Weight>1.0</Weight>
 		<Score>100.0</Score>
 	</Relationship>
 	<Relationship>
-		<id>2</id>   noise 3<Type>ManytoOne</Type>
+		<id>2</id>   noise 3
+		<Type>ManytoOne</Type>
 		<Weight>1.0</Weight>
 		<Score>90.0</Score>
 	</Relationship>
