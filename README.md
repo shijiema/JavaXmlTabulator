@@ -2,7 +2,7 @@
 Converting XML to tabular form of data in pure Java implementation. No third party library required.
 
 For am Xml such as
-
+```
 &lt;Relations&gt;
 	&lt;Relationship bala=&quot;ddd&quot;&gt;
 		&lt;id&gt;1&lt;/id&gt;
@@ -17,26 +17,26 @@ For am Xml such as
 		&lt;Score&gt;90.0&lt;/Score&gt;
 	&lt;/Relationship&gt;
 &lt;/Relations&gt;
-
+```
 It will convert it to a flatten version of data that if iterating, looks like this:
-
+```
 [Relations_Relationship_bala, Relations_Relationship_id, Relations_Relationship_Type, Relations_Relationship_Weight, Relations_Relationship_Score]
 [ddd, 1, match, 1.0, 100.0]
 [null, 2, match, 1.0, 90.0]
-
+```
 It has two ways to access transformed data.
 
 First method is through its iterator() method, which will return each row as List<String>. First row is header and subsequent rows are body content. Headers and body content have been aligned.
 
 Second method is through its getHeaders() and getBody() if partial data access is what is wanted.
 
-Algorithm
+## Algorithm
 
-Observations:
+### Observations:
 1. non-repeat elements in XML could be treated as parent node's attributes
 2. repeat element in XML usually means multiple rows after being flattened
 3. path from root to node makes the columns in tabular format
-
+```
 tablify(){
     with XML tree,
     1. merge non-repeat elements to their parents
@@ -59,3 +59,6 @@ tablify(){
         (this works well for non-repeat node wrapped as parent node's attribute)
     4.return key-value paired node production
 }
+
+```
+* **Shi Jie Ma** - *Initial work*
