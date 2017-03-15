@@ -4,15 +4,12 @@ Converting XML to tabular form of data in pure Java implementation. No third par
 For am Xml such as
 ```
 <Relations>
-	<Relationship bala=&quot;ddd&quot;>
-		<id>1</id>
-		<Type>match</Type>
-		<Weight>1.0</Weight>
+	<Relationship p1="v1">some text<id>1</id>
+		<Type>OneToMany</Type>other text<Weight>1.0</Weight>
 		<Score>100.0</Score>
 	</Relationship>
 	<Relationship>
-		<id>2</id>
-		<Type>match</Type>
+		<id>2</id>   noise 3<Type>ManytoOne</Type>
 		<Weight>1.0</Weight>
 		<Score>90.0</Score>
 	</Relationship>
@@ -20,9 +17,9 @@ For am Xml such as
 ```
 It will convert it to a flatten version of data that if iterating, looks like this:
 ```
-[Relations_Relationship_bala, Relations_Relationship_id, Relations_Relationship_Type, Relations_Relationship_Weight, Relations_Relationship_Score]
-[ddd, 1, match, 1.0, 100.0]
-[null, 2, match, 1.0, 90.0]
+[Relations_Relationship, Relations_Relationship_Score, Relations_Relationship_Type, Relations_Relationship_Weight, Relations_Relationship_id, Relations_Relationship_p1]
+[some textother text, 100.0, OneToMany, 1.0, 1, v1]
+[noise 3, 90.0, ManytoOne, 1.0, 2, null]
 ```
 It has two ways to access transformed data.
 

@@ -400,9 +400,9 @@ public class JavaXmlTabulator implements Iterable<List<String>>{
     }
 	public static void main(String[] args) throws Exception {
 		//System.out.println(Xml.isXml("<Relationship bala=\"ddd\">        <id>1</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>100.0</Score>    </Relationship>        <Relationship>        <id>2</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>90.0</Score>    </Relationship>"));
-		//String xml2 = "<Relations><Relationship bala=\"ddd\">noise<id>1</id><Type>match</Type>noise 2<Weight>1.0</Weight>        <Score>100.0</Score>    </Relationship>        <Relationship>        <id>2</id>   noise 3     <Type>match</Type>        <Weight>1.0</Weight>        <Score>90.0</Score>    </Relationship></Relations>";
+		String xml2 = "<Relations><Relationship p1=\"v1\">some text<id>1</id><Type>OneToMany</Type>other text<Weight>1.0</Weight><Score>100.0</Score></Relationship><Relationship> <id>2</id>   noise 3<Type>ManytoOne</Type><Weight>1.0</Weight><Score>90.0</Score>    </Relationship></Relations>";
         //String xml2 = "<E1>TextE1<E2 p1=\"v1\">TextE2</E2><E2 p1=\"v3\">E2</E2><E2 p1=\"v4\">E22<E15>TextE15</E15></E2><E3>TextE3</E3> <E4><E5>TextE5</E5><E6>TextE6<E9>textE9</E9><E10>TextE10</E10></E6></E4><E7 p2=\"v2\">TextE7<E8>TextE8</E8></E7><E11><E12><E13><E14>TextE14</E14></E13></E12></E11></E1>";
-        String xml2 = "<Relations><first>hellow</first>noise<second>Andrew</second></Relations>";
+        //String xml2 = "<Relations><first>hellow</first>noise<second>Andrew</second></Relations>";
         JavaXmlTabulator o = new JavaXmlTabulator(xml2);
 		System.out.println(o.getBody());
 		Iterator<List<String>> it = o.iterator();
