@@ -47,7 +47,7 @@ import static org.w3c.dom.Node.TEXT_NODE;
 public class JavaXmlTabulator implements Iterable<List<String>>{
     final String NAME_SEPARATOR = "_";
     List<Map<String,String>> mapResult = new ArrayList<Map<String,String>>();
-    List<List<KeyValueWithProperties>> result = new ArrayList<List<KeyValueWithProperties>>();
+    List<List<MyNode>> result = new ArrayList<List<MyNode>>();
     Set<String> headerSet = new LinkedHashSet<String>();
     List<String> headers = new LinkedList<String>();
     DocumentBuilder builder = null;
@@ -62,37 +62,37 @@ public class JavaXmlTabulator implements Iterable<List<String>>{
         xpath = xPathfactory.newXPath();
     }
     private void parse(Reader reader) throws Exception{
-        List<KeyValueWithProperties> path = new ArrayList<KeyValueWithProperties>();
+        List<MyNode> path = new ArrayList<MyNode>();
         this.xml = builder.parse(new InputSource(reader));
         //pre-process, merge non-repeat leaf elements as part of parent node
-        bottomUpMerge(this.xml.getDocumentElement());
+        mergeChildrenIntoParent(this.xml.getDocumentElement());
        //printing out
-        //printXml(this.xml);
+        //print(this.xml);
         //reform to get a more compact xml
         this.xml.normalizeDocument();
         //make production of nodes from bottom to top
         List<List<Node>> productionOfNodes = bottomUpProduction(this.xml);
         convertNodeToKVP(productionOfNodes);//TODO: try to use node directly
         headerSet.clear();
-        convertDuplicatedColsToRows();
+        makeResultAsListOfMap();
     }
 
     private void convertNodeToKVP(List<List<Node>> productionOfNodes) {
         Objects.requireNonNull(productionOfNodes);
         for(List<Node> lon : productionOfNodes){
-            List<KeyValueWithProperties> kvpl = new ArrayList<>();
+            List<MyNode> kvpl = new ArrayList<>();
             for(Node n:lon){
-                kvpl.add(nodeToKvp(n));
+                kvpl.add(convertNodeToKvp(n));
             }
             result.add(kvpl);
         }
     }
 
-    private KeyValueWithProperties nodeToKvp(Node n) {
+    private MyNode convertNodeToKvp(Node n) {
         Objects.requireNonNull(n);
         XPathExpression expr = null;
         String header = null;
-        KeyValueWithProperties curNode = KeyValueWithProperties.newStringKeyValuePair(parseNodeName(n), null);
+        MyNode curNode = MyNode.newStringKeyValuePair(parseNodeName(n), null);
         //text
         NodeList children = n.getChildNodes();
         StringBuilder sb = new StringBuilder();
@@ -114,7 +114,7 @@ public class JavaXmlTabulator implements Iterable<List<String>>{
         return curNode;
     }
 
-    private void printXml(Document document) {
+    private void print(Document document) {
         try {
             DOMSource domSource = new DOMSource(document);
             StringWriter writer = new StringWriter();
@@ -122,7 +122,7 @@ public class JavaXmlTabulator implements Iterable<List<String>>{
             TransformerFactory tf = TransformerFactory.newInstance();
             Transformer transformer = tf.newTransformer();
             transformer.transform(domSource, result);
-            System.out.println("XML IN String format is: \n" + writer.toString());
+            System.out.println("XML String is: \n" + writer.toString());
         }catch (Exception e){}
     }
 
@@ -138,7 +138,7 @@ public class JavaXmlTabulator implements Iterable<List<String>>{
 
         parse(reader);
     }
-    private void bottomUpMerge(Node root) throws XPathExpressionException {
+    private void mergeChildrenIntoParent(Node root) throws XPathExpressionException {
         if(root == null)return;
         //get all leaf nodes
         XPathExpression expr = xpath.compile("//*[count(child::*) < 1]");
@@ -149,14 +149,14 @@ public class JavaXmlTabulator implements Iterable<List<String>>{
             boolean changed = false;
             for(int i=0;i<leafElements.getLength();i++){
                 Node n = leafElements.item(i);
-                changed = mergeToParent(n);
+                changed = mergeNodeToParent(n);
                 if(changed)isToContinue=true;
             }
             leafElements = (NodeList) expr.evaluate(root, XPathConstants.NODESET);
         }
     }
 
-    private boolean mergeToParent(Node n) {
+    private boolean mergeNodeToParent(Node n) {
         //current node and parent must be both Elements
         if(!(n instanceof Element) || n.getParentNode()==null || !(n.getParentNode() instanceof Element))return false;
         //current node must be unique children element
@@ -213,7 +213,7 @@ public class JavaXmlTabulator implements Iterable<List<String>>{
                 if (curNode.getParentNode() != null && curNode.getParentNode() != doc.getDocumentElement() && doc.getParentNode()!= doc) {
                     grandParents.add(curNode.getParentNode());
                 }
-                collapseAParentNodeAndMakeDescendantProduction(curNode, nodeProductionMap);
+                makeEquivelantNodeProduction(curNode, nodeProductionMap);
                 itor.remove();
             }
 
@@ -222,7 +222,7 @@ public class JavaXmlTabulator implements Iterable<List<String>>{
         }
 
         //now for the document element
-        return collapseAParentNodeAndMakeDescendantProduction(doc.getDocumentElement(), nodeProductionMap);
+        return makeEquivelantNodeProduction(doc.getDocumentElement(), nodeProductionMap);
     }
 
     private String parseNodeName(Node node){
@@ -236,44 +236,7 @@ public class JavaXmlTabulator implements Iterable<List<String>>{
         sb.delete(0,1);
         return sb.toString();
     }
-    private KeyValueWithProperties getKVPFromNode(Node node) throws XPathExpressionException {
-
-        if(node==null){
-            return null;
-        }
-
-        XPathExpression expr = null;
-        String header = null;
-
-        //node and its properties
-        //text
-        expr = xpath.compile("./child::text()");
-        NodeList textInCurrentNode = (NodeList) expr.evaluate(node, XPathConstants.NODESET);
-        KeyValueWithProperties curNode = KeyValueWithProperties.newStringKeyValuePair(parseNodeName(node), null);
-        if(textInCurrentNode!=null &&textInCurrentNode.getLength()>0){
-            StringBuilder sb = new StringBuilder();
-            for(int i=0;i<textInCurrentNode.getLength();i++){
-                sb.append(textInCurrentNode.item(i).getNodeValue().trim()).append(" ");
-            }
-            if(sb.length()>0) {
-                curNode.setValue(sb.toString().trim());
-            }
-        }
-        textInCurrentNode = null;
-
-        //cur node its attribute nodes.
-        NamedNodeMap properties = node.getAttributes();
-        if(properties!=null && properties.getLength()>0){
-            for(int i=0;i<properties.getLength();i++){
-                curNode.addProperty(properties.item(i).getNodeName(),properties.item(i).getNodeValue());
-            }
-        }
-
-        properties = null;
-        return curNode;
-    }
-
-    private List<List<Node>> collapseAParentNodeAndMakeDescendantProduction(Node curNode, Map<Node,List<List<Node>>> nodeProductionMap) throws XPathExpressionException {
+    private List<List<Node>> makeEquivelantNodeProduction(Node curNode, Map<Node,List<List<Node>>> nodeProductionMap) throws XPathExpressionException {
         NodeList childNodes = curNode.getChildNodes();
         //product the node
         //get repeat statistics
@@ -375,10 +338,10 @@ public class JavaXmlTabulator implements Iterable<List<String>>{
      * @param l
      * @return
      */
-    private Map<String,String> convertListOfKVPToMap(List<KeyValueWithProperties> l){
+    private Map<String,String> transformAsMap(List<MyNode> l){
         Objects.requireNonNull(l);
         Map<String,String> mp = new TreeMap<String,String>();
-        for(KeyValueWithProperties kv:l){
+        for(MyNode kv:l){
             if(kv.getValue()!=null&&!"".equals(kv.getValue())) {
                 mp.put(kv.getKey(), kv.getValue());
                 headerSet.add(kv.getKey());
@@ -396,35 +359,10 @@ public class JavaXmlTabulator implements Iterable<List<String>>{
     /**
      * For duplicate columns within a row, convert them to be in different rows.
      */
-    private void convertDuplicatedColsToRows(){
-        List<List<KeyValueWithProperties>> newResult = new ArrayList<List<KeyValueWithProperties>>();
-        Iterator<List<KeyValueWithProperties>> rows = result.iterator();
-        //revisit each row
+    private void makeResultAsListOfMap(){
+        Iterator<List<MyNode>> rows = result.iterator();
         while(rows.hasNext()){
-            Map<String, Set<KeyValueWithProperties>> stats = new LinkedHashMap<String,Set<KeyValueWithProperties>>();
-            List<KeyValueWithProperties> l = rows.next();
-            for(KeyValueWithProperties kv : l){
-                if(stats.containsKey(kv.getKey())){
-                    stats.get(kv.getKey()).add(kv);
-                }else{
-                    Set<KeyValueWithProperties> s = new TreeSet<KeyValueWithProperties>();
-                    s.add(kv);
-                    stats.put(kv.getKey(), s);
-                }
-            }
-
-            List<List<KeyValueWithProperties>> tmpRows = new ArrayList<List<KeyValueWithProperties>>();
-            for(Map.Entry<String, Set<KeyValueWithProperties>> e:stats.entrySet()){
-                tmpRows = makeProduction(tmpRows, e.getValue());
-            }
-            newResult.addAll(tmpRows);
-            rows.remove();
-        }
-        result.addAll(newResult);
-        //following operation will also generates headers
-        rows = result.iterator();
-        while(rows.hasNext()){
-            mapResult.add(convertListOfKVPToMap(rows.next()));
+            mapResult.add(transformAsMap(rows.next()));
             rows.remove();
         }
         headers.addAll(headerSet);
@@ -436,22 +374,22 @@ public class JavaXmlTabulator implements Iterable<List<String>>{
      * @param setToAdd
      * @return
      */
-    private List<List<KeyValueWithProperties>> makeProduction(List<List<KeyValueWithProperties>> list, Set<KeyValueWithProperties> setToAdd){
-        List<List<KeyValueWithProperties>> production = new ArrayList<List<KeyValueWithProperties>>();
+    private List<List<MyNode>> makeProduction(List<List<MyNode>> list, Set<MyNode> setToAdd){
+        List<List<MyNode>> production = new ArrayList<List<MyNode>>();
         if(list==null){
-            list = new ArrayList<List<KeyValueWithProperties>>();
+            list = new ArrayList<List<MyNode>>();
         }
 
-        for(KeyValueWithProperties kv:setToAdd){
+        for(MyNode kv:setToAdd){
             if(kv.getProperties()!=null ||(kv.getValue()!=null && !"".equals(kv.getValue()))) {
                 if (list.size() == 0) {
-                    List<KeyValueWithProperties> newList = new ArrayList<>();
+                    List<MyNode> newList = new ArrayList<>();
                     newList.add(kv);
                     production.add(newList);
                 } else {
-                    for (List<KeyValueWithProperties> ol : list) {
+                    for (List<MyNode> ol : list) {
                         //for each original list, create new list to add new value
-                        List<KeyValueWithProperties> newList = new ArrayList<>(ol);
+                        List<MyNode> newList = new ArrayList<>(ol);
                         newList.add(kv);
                         production.add(newList);
                     }
@@ -460,67 +398,6 @@ public class JavaXmlTabulator implements Iterable<List<String>>{
         }
         return production;
     }
-    /**
-     * count number of ancenstors of lowest element within path
-     * @param path
-     * @return
-     */
-    private int ancestorCnt(String path){
-        int i=-1,cnt=0;
-        i = path.indexOf("/");
-        while(i!=-1){
-            cnt++;
-            i=path.indexOf("/",i+1);
-        }
-        //remove the tailing count
-        return cnt>0?cnt-1:cnt;
-    }
-    /**
-     * Return maximum number of ancestors of an element in given xml.
-     * @param xml
-     * @return
-     */
-    private int maxAncestorCnt(Document xml) throws XPathExpressionException {
-        //xml.select("//*[count(child::*)>0]");//find elements that has children
-        XPathExpression expr = xpath.compile("//*[count(child::*)>0]");
-        NodeList parents = (NodeList) expr.evaluate(xml, XPathConstants.NODESET);
-        int maxCnt = 0;
-        if(parents!=null && parents.getLength()>0) {
-            for (int i = 0; i < parents.getLength(); i++) {
-                Node si = parents.item(i);
-                //reset for each node
-                int cnt = 0;
-                while (si.getParentNode() != null) {
-                    si = si.getParentNode();
-                    cnt++;
-                }
-
-                maxCnt = Math.max(maxCnt, cnt);
-            }
-        }
-
-        return maxCnt;//with / as one parent level
-    }
-    /**
-     * Normalize a key by replacing indices and special characters,
-     * and using "_" as separator between original element names.
-     * @param key
-     * @return
-     */
-    private String normalizeAKey(String key){
-        // "/" as separator
-        if('/'==key.charAt(0)){
-            key = key.substring(1);
-        }
-        if(key.length()>0 && '/'==key.charAt(key.length()-1)){
-            key = key.substring(0,key.length()-1);
-        }
-        key = key.replaceAll("/@","_");
-        key = key.replaceAll("/","_");
-
-        return key;
-    }
-
 	public static void main(String[] args) throws Exception {
 		//System.out.println(Xml.isXml("<Relationship bala=\"ddd\">        <id>1</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>100.0</Score>    </Relationship>        <Relationship>        <id>2</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>90.0</Score>    </Relationship>"));
 		//String xml2 = "<Relations><Relationship bala=\"ddd\">noise<id>1</id><Type>match</Type>noise 2<Weight>1.0</Weight>        <Score>100.0</Score>    </Relationship>        <Relationship>        <id>2</id>   noise 3     <Type>match</Type>        <Weight>1.0</Weight>        <Score>90.0</Score>    </Relationship></Relations>";
