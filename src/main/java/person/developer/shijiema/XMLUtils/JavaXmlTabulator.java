@@ -44,7 +44,7 @@ import static org.w3c.dom.Node.TEXT_NODE;
  * @author Andrew Ma
  * @version 1.0, 02/14/2017
  */
-public class XmlFlattener implements Iterable<List<String>>{
+public class JavaXmlTabulator implements Iterable<List<String>>{
     final String NAME_SEPARATOR = "_";
     List<Map<String,String>> mapResult = new ArrayList<Map<String,String>>();
     List<List<KeyValueWithProperties>> result = new ArrayList<List<KeyValueWithProperties>>();
@@ -126,13 +126,13 @@ public class XmlFlattener implements Iterable<List<String>>{
         }catch (Exception e){}
     }
 
-    public XmlFlattener(File xmlFile) throws Exception {
+    public JavaXmlTabulator(File xmlFile) throws Exception {
         initDocumentAndXpath();
         Reader reader = new FileReader(xmlFile);
 
         parse(reader);
     }
-    public XmlFlattener(String xmlStr) throws Exception {
+    public JavaXmlTabulator(String xmlStr) throws Exception {
         initDocumentAndXpath();
         Reader reader = new CharArrayReader(xmlStr.toCharArray());
 
@@ -526,7 +526,7 @@ public class XmlFlattener implements Iterable<List<String>>{
 		//String xml2 = "<Relations><Relationship bala=\"ddd\">noise<id>1</id><Type>match</Type>noise 2<Weight>1.0</Weight>        <Score>100.0</Score>    </Relationship>        <Relationship>        <id>2</id>   noise 3     <Type>match</Type>        <Weight>1.0</Weight>        <Score>90.0</Score>    </Relationship></Relations>";
         //String xml2 = "<E1>TextE1<E2 p1=\"v1\">TextE2</E2><E2 p1=\"v3\">E2</E2><E2 p1=\"v4\">E22<E15>TextE15</E15></E2><E3>TextE3</E3> <E4><E5>TextE5</E5><E6>TextE6<E9>textE9</E9><E10>TextE10</E10></E6></E4><E7 p2=\"v2\">TextE7<E8>TextE8</E8></E7><E11><E12><E13><E14>TextE14</E14></E13></E12></E11></E1>";
         String xml2 = "<Relations><first>hellow</first>noise<second>Andrew</second></Relations>";
-        XmlFlattener o = new XmlFlattener(xml2);
+        JavaXmlTabulator o = new JavaXmlTabulator(xml2);
 		System.out.println(o.getBody());
 		Iterator<List<String>> it = o.iterator();
 		while(it.hasNext()){
@@ -543,10 +543,10 @@ public class XmlFlattener implements Iterable<List<String>>{
 
     private class ListIterator<Item> implements Iterator<Item> {
         private int index;
-        XmlFlattener flatter= null;
-        public ListIterator(XmlFlattener xmlFlattener) {
+        JavaXmlTabulator flatter= null;
+        public ListIterator(JavaXmlTabulator javaXmlTabulator) {
             index = 0;
-            flatter = xmlFlattener;
+            flatter = javaXmlTabulator;
         }
 
         public boolean hasNext()  {

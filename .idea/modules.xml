@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/XMLFlattener.iml" filepath="$PROJECT_DIR$/XMLFlattener.iml" />
+      <module fileurl="file://$PROJECT_DIR$/JavaXmlTabulator.iml" filepath="$PROJECT_DIR$/JavaXmlTabulator.iml" />
     </modules>
   </component>
 </project>

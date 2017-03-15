@@ -6,14 +6,13 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import java.io.File;
-import java.util.Calendar;
 import java.util.Iterator;
 import java.util.Map;
 
 /**
  * Unit test for simple App.
  */
-public class XmlFlattenerTest
+public class JavaXmlTabulatorTest
     extends TestCase
 {
     /**
@@ -21,7 +20,7 @@ public class XmlFlattenerTest
      *
      * @param testName name of the test case
      */
-    public XmlFlattenerTest(String testName )
+    public JavaXmlTabulatorTest(String testName )
     {
         super( testName );
     }
@@ -31,7 +30,7 @@ public class XmlFlattenerTest
      */
     public static Test suite()
     {
-        return new TestSuite( XmlFlattenerTest.class );
+        return new TestSuite( JavaXmlTabulatorTest.class );
     }
 
     /**
@@ -40,7 +39,7 @@ public class XmlFlattenerTest
     public void testText() throws Exception {
         String xml2 = "<Relations><Relationship bala=\"ddd\">        <id>1</id>  noise      <Type>match</Type>        <Weight>1.0</Weight>        <Score>100.0</Score>    </Relationship>        <Relationship>        <id>2</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>90.0</Score>    </Relationship></Relations>";
 
-        XmlFlattener o = new XmlFlattener(xml2);
+        JavaXmlTabulator o = new JavaXmlTabulator(xml2);
 //        Iterator itor = o.iterator();
 //        while(itor.hasNext()){
 //            System.out.println(itor.next());
@@ -57,7 +56,7 @@ public class XmlFlattenerTest
     public void testXmlFromString() throws Exception {
         String xml2 = "<Relations><Relationship bala=\"ddd\">        <id>1</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>100.0</Score>    </Relationship>        <Relationship>        <id>2</id>        <Type>match</Type>        <Weight>1.0</Weight>        <Score>90.0</Score>    </Relationship></Relations>";
 
-        XmlFlattener o = new XmlFlattener(xml2);
+        JavaXmlTabulator o = new JavaXmlTabulator(xml2);
 //        System.out.println(o.getHeaders());
 //        System.out.println(o.getBody());
         Assert.assertEquals(o.getHeaders().size(),5);
@@ -77,7 +76,7 @@ public class XmlFlattenerTest
     public void testXmlFromFile() throws Exception{
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("Relations.xml").getFile());
-        XmlFlattener o = new XmlFlattener(file);
+        JavaXmlTabulator o = new JavaXmlTabulator(file);
         Assert.assertEquals(o.getHeaders().size(),5);
         Assert.assertNotNull(o.getBody());
         Assert.assertEquals(o.getBody().size(),2);
@@ -95,7 +94,7 @@ public class XmlFlattenerTest
     public void testPomXml() throws Exception{
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("testXmlPom.xml").getFile());
-        XmlFlattener o = new XmlFlattener(file);
+        JavaXmlTabulator o = new JavaXmlTabulator(file);
         //there is no repeated element, the entire xml is converted to one line
         Assert.assertEquals(o.getBody().size(),1);
 //        Iterator itor = o.iterator();
@@ -107,7 +106,7 @@ public class XmlFlattenerTest
     public void testBreakfactMenu() throws Exception{
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("BreakfastMenu.xml").getFile());
-        XmlFlattener o = new XmlFlattener(file);
+        JavaXmlTabulator o = new JavaXmlTabulator(file);
 //        Iterator itor = o.iterator();
 //        while(itor.hasNext()){
 //            System.out.println(itor.next());
@@ -127,7 +126,7 @@ public class XmlFlattenerTest
     public void testEtest() throws Exception{
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("ETest.xml").getFile());
-        XmlFlattener o = new XmlFlattener(file);
+        JavaXmlTabulator o = new JavaXmlTabulator(file);
         Iterator itor = o.iterator();
 //        while(itor.hasNext()){
 //            System.out.println(itor.next());
@@ -149,7 +148,7 @@ public class XmlFlattenerTest
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("TranslinkBuses.xml").getFile());
         //System.out.println(Calendar.getInstance().getTime());
-        XmlFlattener o = new XmlFlattener(file);
+        JavaXmlTabulator o = new JavaXmlTabulator(file);
         //System.out.println(Calendar.getInstance().getTime());
         Iterator itor = o.iterator();
 //        while(itor.hasNext()){
